@@ -1,20 +1,19 @@
 <?php
 session_start();
-
+require 'connection.php';
+$conn = Connect();
 if(!isset($_SESSION['login_user2'])){
 header("location: customerlogin.php"); 
 }
-
 ?>
-
 
 <html>
 
   <head>
-    <title> Explore | Food Le Cafe' </title>
+    <title> Cart | Le Cafe' </title>
   </head>
 
-  <link rel="stylesheet" type = "text/css" href ="css/foodlist.css">
+  <link rel="stylesheet" type = "text/css" href ="css/cart.css">
   <link rel="stylesheet" type = "text/css" href ="css/bootstrap.min.css">
   <script type="text/javascript" src="js/jquery.min.js"></script>
   <script type="text/javascript" src="js/bootstrap.min.js"></script>
@@ -83,15 +82,17 @@ else if (isset($_SESSION['login_user2'])) {
   ?>
            <ul class="nav navbar-nav navbar-right">
             <li><a href="#"><span class="glyphicon glyphicon-user"></span> Welcome <?php echo $_SESSION['login_user2']; ?> </a></li>
-            <li class="active" ><a href="foodlist.php"><span class="glyphicon glyphicon-cutlery"></span> Food Zone </a></li>
-            <li><a href="cart.php"><span class="glyphicon glyphicon-shopping-cart"></span> Cart  (<?php
+            <li><a href="foodlist.php"><span class="glyphicon glyphicon-cutlery"></span> Food Zone </a></li>
+            <li class="active" ><a href="foodlist.php"><span class="glyphicon glyphicon-shopping-cart"></span> Cart
+             (<?php
               if(isset($_SESSION["cart"])){
               $count = count($_SESSION["cart"]); 
               echo "$count"; 
             }
               else
                 echo "0";
-              ?>) </a></li>
+              ?>)
+              </a></li>
             <li><a href="logout_u.php"><span class="glyphicon glyphicon-log-out"></span> Log Out </a></li>
           </ul>
   <?php        
@@ -128,133 +129,155 @@ else {
       </div>
     </nav>
 
-    <div id="myCarousel" class="carousel slide" data-ride="carousel">
-    <ol class="carousel-indicators">
-      <li data-target="#myCarousel" data-slide-to="0" class="active"></li>
-      <li data-target="#myCarousel" data-slide-to="1"></li>
-      <li data-target="#myCarousel" data-slide-to="2"></li>
-    </ol>
-    <div class="carousel-inner">
-
-      <div class="item active">
-      <img src="images/slide002.jpg" style="width:100%;">
-      <div class="carousel-caption">
-      </div>
-      </div>
-       
-       <!--div class="item">
-      <img src="images/home.jpg" style="width:100%;">
-      <div class="carousel-caption">
-
-      </div>
-      </div-->
-
-      <div class="item">
-      <img src="images/slide001.jpg" style="width:100%;">
-      <div class="carousel-caption">
-
-      </div>
-      </div>
-      <div class="item">
-      <img src="images/slide003.jpg" style="width:100%;">
-      <div class="carousel-caption">
-      </div>
-      </div>
     
-    </div>
-   <a class="left carousel-control" href="#myCarousel" data-slide="prev">
-      <span class="glyphicon glyphicon-chevron-left"></span>
-      <span class="sr-only">Previous</span>
-    </a>
-    <a class="right carousel-control" href="#myCarousel" data-slide="next">
-      <span class="glyphicon glyphicon-chevron-right"></span>
-      <span class="sr-only">Next</span>
-    </a>
-    </div>
-
-<div class="jumbotron">
-  <div class="container text-center">
-    <h1>Welcome To Le Cafe'</h1>      
-    <!--p>Let food be thy medicine and medicine be thy food</p-->
-  </div>
-</div>
-
-
-
-
-<div class="container" style="width:95%;">
-
-<!-- Display all Food from food table -->
 <?php
-
-require 'connection.php';
-$conn = Connect();
-
-$sql = "SELECT * FROM FOOD WHERE options = 'ENABLE' ORDER BY F_ID";
-$result = mysqli_query($conn, $sql);
-
-if (mysqli_num_rows($result) > 0)
+if(!empty($_SESSION["cart"]))
 {
-  $count=0;
-
-  while($row = mysqli_fetch_assoc($result)){
-    if ($count == 0)
-      echo "<div class='row'>";
-
-?>
-<div class="col-md-3">
-
-<form method="post" action="cart.php?action=add&id=<?php echo $row["F_ID"]; ?>">
-<div class="mypanel" align="center";>
-<img src="<?php echo $row["images_path"]; ?>" class="img-responsive">
-<h4 class="text-dark"><?php echo $row["name"]; ?></h4>
-<h5 class="text-info"><?php echo $row["description"]; ?></h5>
-<h5 class="text-danger">&#8377; <?php echo $row["price"]; ?>/-</h5>
-<h5 class="text-info">Quantity: <input type="number" min="1" max="25" name="quantity" class="form-control" value="1" style="width: 60px;"> </h5>
-<input type="hidden" name="hidden_name" value="<?php echo $row["name"]; ?>">
-<input type="hidden" name="hidden_price" value="<?php echo $row["price"]; ?>">
-<input type="hidden" name="hidden_RID" value="<?php echo $row["R_ID"]; ?>">
-<input type="submit" name="add" style="margin-top:5px;" class="btn btn-success" value="Add to Cart">
-</div>
-</form>
+  ?>
+  <div class="container">
+      <div class="jumbotron">
+        <h1>Your Shopping Cart</h1>
+        <p>Looks tasty...!!!</p>
+        
+      </div>
       
-     
-</div>
+    </div>
+    <div class="table-responsive" style="padding-left: 100px; padding-right: 100px;" >
+<table class="table table-striped">
+  <thead class="thead-dark">
+<tr>
+<th width="40%">Food Name</th>
+<th width="10%">Quantity</th>
+<th width="20%">Price Details</th>
+<th width="15%">Order Total</th>
+<th width="5%">Action</th>
+</tr>
+</thead>
 
-<?php
-$count++;
-if($count==4)
+
+<?php  
+
+$total = 0;
+foreach($_SESSION["cart"] as $keys => $values)
 {
-  echo "</div>";
-  $count=0;
+?>
+<tr>
+<td><?php echo $values["food_name"]; ?></td>
+<td><?php echo $values["food_quantity"] ?></td>
+<td>&#8377; <?php echo $values["food_price"]; ?></td>
+<td>&#8377; <?php echo number_format($values["food_quantity"] * $values["food_price"], 2); ?></td>
+<td><a href="cart.php?action=delete&id=<?php echo $values["food_id"]; ?>"><span class="text-danger">Remove</span></a></td>
+</tr>
+<?php 
+$total = $total + ($values["food_quantity"] * $values["food_price"]);
 }
+?>
+<tr>
+<td colspan="3" align="right">Total</td>
+<td align="right">&#8377; <?php echo number_format($total, 2); ?></td>
+<td></td>
+</tr>
+</table>
+<?php
+  echo '<a href="cart.php?action=empty"><button class="btn btn-danger"><span class="glyphicon glyphicon-trash"></span> Empty Cart</button></a>&nbsp;<a href="foodlist.php"><button class="btn btn-warning">Continue Shopping</button></a>&nbsp;<a href="payment.php"><button class="btn btn-success pull-right"><span class="glyphicon glyphicon-share-alt"></span> Check Out</button></a>';
+?>
+</div>
+<br><br><br><br><br><br><br>
+<?php
+}
+if(empty($_SESSION["cart"]))
+{
+  ?>
+  <div class="container">
+      <div class="jumbotron">
+        <h1>Your Shopping Cart</h1>
+        <p>Oops! We can't smell any food here. Go back and <a href="foodlist.php">order now.</a></p>
+        
+      </div>
+      
+    </div>
+    <br><br><br><br><br><br><br><br><br><br><br><br><br><br>
+    <?php
 }
 ?>
 
-</div>
-</div>
+
 <?php
+
+
+if(isset($_POST["add"]))
+{
+if(isset($_SESSION["cart"]))
+{
+$item_array_id = array_column($_SESSION["cart"], "food_id");
+if(!in_array($_GET["id"], $item_array_id))
+{
+$count = count($_SESSION["cart"]);
+
+$item_array = array(
+'food_id' => $_GET["id"],
+'food_name' => $_POST["hidden_name"],
+'food_price' => $_POST["hidden_price"],
+'R_ID' => $_POST["hidden_RID"],
+'food_quantity' => $_POST["quantity"]
+);
+$_SESSION["cart"][$count] = $item_array;
+echo '<script>window.location="cart.php"</script>';
 }
 else
 {
-  ?>
+echo '<script>alert("Products already added to cart")</script>';
+echo '<script>window.location="cart.php"</script>';
+}
+}
+else
+{
+$item_array = array(
+'food_id' => $_GET["id"],
+'food_name' => $_POST["hidden_name"],
+'food_price' => $_POST["hidden_price"],
+'R_ID' => $_POST["hidden_RID"],
+'food_quantity' => $_POST["quantity"]
+);
+$_SESSION["cart"][0] = $item_array;
+}
+}
+if(isset($_GET["action"]))
+{
+if($_GET["action"] == "delete")
+{
+foreach($_SESSION["cart"] as $keys => $values)
+{
+if($values["food_id"] == $_GET["id"])
+{
+unset($_SESSION["cart"][$keys]);
+echo '<script>alert("Food has been removed")</script>';
+echo '<script>window.location="cart.php"</script>';
+}
+}
+}
+}
 
-  <div class="container">
-    <div class="jumbotron">
-      <center>
-         <label style="margin-left: 5px;color: red;"> <h1>Oops! No food is available.</h1> </label>
-        <p>Stay Hungry...! :P</p>
-      </center>
-       
-    </div>
-  </div>
+if(isset($_GET["action"]))
+{
+if($_GET["action"] == "empty")
+{
+foreach($_SESSION["cart"] as $keys => $values)
+{
 
-  <?php
+unset($_SESSION["cart"]);
+echo '<script>alert("Cart is made empty!")</script>';
+echo '<script>window.location="cart.php"</script>';
 
 }
+}
+}
+
+
+?>
+<?php
 
 ?>
 
-   
-</body>
+    </body>
 </html>
